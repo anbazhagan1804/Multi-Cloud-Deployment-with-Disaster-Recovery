@@ -1,0 +1,79 @@
+global:
+  name: consul
+  datacenter: primary
+  image: "hashicorp/consul:1.16.0"
+  enableConsulNamespaces: true
+  tls:
+    enabled: true
+    enableAutoEncrypt: true
+
+server:
+  replicas: 3
+  bootstrapExpect: 3
+  disruptionBudget:
+    enabled: true
+    maxUnavailable: 0
+  extraConfig: |
+    {
+      "connect": {
+        "enabled": true
+      },
+      "primary_datacenter": "primary",
+      "acl": {
+        "enabled": true,
+        "default_policy": "deny",
+        "enable_token_persistence": true
+      }
+    }
+
+connectInject:
+  enabled: true
+  default: true
+  centralConfig:
+    enabled: true
+    defaultProtocol: "http"
+    proxyDefaults: |
+      {
+        "envoy_prometheus_bind_addr": "0.0.0.0:9102"
+      }
+
+controller:
+  enabled: true
+
+meshGateway:
+  enabled: true
+  replicas: 2
+  service:
+    type: LoadBalancer
+  wanAddress:
+    source: Service
+    port: 443
+
+ui:
+  enabled: true
+  service:
+    type: LoadBalancer
+
+syncCatalog:
+  enabled: true
+  default: true
+  toConsul: true
+  toK8S: true
+
+federation:
+  enabled: true
+  createFederationSecret: true
+
+prometheus:
+  enabled: true
+
+serviceAccounts:
+  create: true
+  syncCatalog:
+    create: true
+  connectInject:
+    create: true
+  controller:
+    create: true
+  meshGateway:
+    create: true

@@ -1,0 +1,94 @@
+# Velero Namespace
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: velero
+
+---
+# Velero AWS Credentials Secret
+apiVersion: v1
+kind: Secret
+metadata:
+  name: cloud-credentials
+  namespace: velero
+type: Opaque
+data:
+  cloud: ${BASE64_ENCODED_AWS_CREDENTIALS}
+
+---
+# Velero Backup Storage Location
+apiVersion: velero.io/v1
+kind: BackupStorageLocation
+metadata:
+  name: default
+  namespace: velero
+spec:
+  provider: aws
+  objectStorage:
+    bucket: ${BACKUP_BUCKET_NAME}
+  config:
+    region: ${AWS_REGION}
+
+---
+# Velero Volume Snapshot Location
+apiVersion: velero.io/v1
+kind: VolumeSnapshotLocation
+metadata:
+  name: default
+  namespace: velero
+spec:
+  provider: aws
+  config:
+    region: ${AWS_REGION}
+
+---
+# Velero Schedule for Regular Backups
+apiVersion: velero.io/v1
+kind: Schedule
+metadata:
+  name: daily-backup
+  namespace: velero
+spec:
+  schedule: "0 1 * * *"  # Daily at 1 AM
+  template:
+    includedNamespaces:
+    - '*'
+    excludedNamespaces:
+    - kube-system
+    - velero
+    includeClusterResources: true
+    snapshotVolumes: true
+    ttl: 720h  # 30 days
+
+---
+# Velero Backup Configuration
+apiVersion: velero.io/v1
+kind: Backup
+metadata:
+  name: on-demand-backup
+  namespace: velero
+spec:
+  includedNamespaces:
+  - '*'
+  excludedNamespaces:
+  - kube-system
+  - velero
+  includeClusterResources: true
+  snapshotVolumes: true
+  ttl: 720h  # 30 days
+
+---
+# Velero Restore Configuration
+apiVersion: velero.io/v1
+kind: Restore
+metadata:
+  name: disaster-recovery-restore
+  namespace: velero
+spec:
+  backupName: on-demand-backup
+  includedNamespaces:
+  - '*'
+  excludedNamespaces:
+  - kube-system
+  - velero
+  includeClusterResources: true
